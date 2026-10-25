@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pacaldo, Bea & Laquinta, Ryan Final Project</title>
+<style>
+  :root { --bg: #f4f5f7; --card: #fff; --text: #1c1e21; --muted: #6b7280; --line: #d9dce1; --accent: #2563eb; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14161a; --card: #1d2026; --text: #eceef1; --muted: #9aa1ad; --line: #2f343d; --accent: #5b8def; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); }
+  
+  header { padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--card); }
+  header h1 { margin: 0; font-size: 18px; }
+  header p { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+  
+  .info-box { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+  
+  main { display: grid; grid-template-columns: 1fr 280px; gap: 12px; padding: 12px; max-width: 1300px; margin: auto; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  #stage { padding: 0; }
+  canvas { display: block; width: 100%; height: auto; cursor: pointer; border-radius: 10px; }
+  
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 8px; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  
+  button { font: inherit; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; flex: 1; }
+  button:hover { border-color: var(--accent); }
+  button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; width: 100%; padding: 10px; }
+  
+  #status { font-size: 13px; color: var(--muted); margin-top: 8px; min-height: 18px; }
+  
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
+  th, td { padding: 6px 4px; text-align: left; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; }
+  
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .legend { margin-top: 10px; font-size: 12px; color: var(--muted); display: flex; gap: 12px; }
+  .legend span { display: inline-flex; align-items: center; }
+  
+  .side { display: flex; flex-direction: column; gap: 12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Bea Rose Pacaldo & Ryan Laquinta Final Project</h1>
+  <p>Tap any place to search :)</p>
+  <div class="info-box">
+    <strong>SUBMITTED BY:</strong> Bea Rose Pacaldo and Ryan Laquinta<br>
+    <strong>SUBMITTED TO:</strong> Dr. Daryl Valdez<br>
+    <strong>COUNTRY AND CITY:</strong> Istanbul, Turkey
+  </div>
+</header>
+
+<main>
+  <div class="card" id="stage"><canvas id="c"></canvas></div>
+
+  <div class="side">
+    <div class="card">
+      <h2>Algorithm</h2>
+      <div class="row" id="algoBtns">
+        <button data-algo="ucs">Uniform Cost</button>
+        <button data-algo="greedy">Greedy Best-First</button>
+        <button data-algo="astar" class="active">A*</button>
+      </div>
+      <div class="row">
+        <button class="primary" id="runBtn">Click here to Run</button>
+      </div>
+      <div class="row" style="margin-bottom:0">
+        <button id="compareBtn">Compare all 3</button>
+        <button id="resetBtn">Reset</button>
+      </div>
+      <div id="status">Tap a vertex to set as the start position :)</div>
+    </div>
+
+    <div class="card">
+      <h2>Results</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Algorithm</th>
+            <th>Explored</th>
+            <th>Cost (px)</th>
+          </tr>
+        </thead>
+        <tbody id="results"></tbody>
+      </table>
+      <div class="legend">
+        <span><i class="dot" style="background:#9333ea"></i>UCS</span>
+        <span><i class="dot" style="background:#ea580c"></i>Greedy</span>
+        <span><i class="dot" style="background:#2563eb"></i>A*</span>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+/* ================= DATA ================= */
+const positions = {
+  "V3": [170.2056, 158.5013], "V9": [620.7497, 57.8016], "V10": [601.1608, 98.5850], "V11": [585.1995, 131.8159],
+  "V12": [567.0617, 162.0258], "V13": [497.4123, 161.0188], "V14": [487.2551, 53.7736], "V15": [552.5514, 55.2841],
+  "V16": [485.0786, 94.5570], "V17": [553.2769, 95.5640], "V18": [401.6445, 94.0535], "V19": [395.8404, 51.7596],
+  "V20": [334.8972, 53.2701], "V21": [363.9178, 93.5500], "V22": [253.6397, 91.5360], "V23": [254.3652, 52.2631],
+  "V24": [117.2430, 51.2562], "V25": [116.5175, 90.5290], "V26": [117.2430, 126.7809], "V27": [115.7920, 157.9978],
+  "V28": [112.1644, 189.7183], "V32": [222.4426, 91.5360], "V33": [165.8525, 91.0325], "V34": [175.2842, 127.7879],
+  "V35": [197.0496, 125.7739], "V36": [210.1088, 137.8579], "V38": [189.7944, 160.0118], "V39": [184.7158, 190.2218],
+  "V40": [221.7170, 159.5083], "V42": [244.9335, 193.2427], "V43": [250.7376, 160.5153], "V45": [400.1935, 129.8019],
+  "V46": [400.9190, 160.0118], "V47": [399.4679, 195.7602], "V48": [494.5103, 196.2637], "V51": [549.6493, 197.2707],
+  "V53": [552.5514, 131.3124], "V54": [224.6191, 133.8299]
+};
+
+const edges = [
+  ["V24","V23"],["V23","V20"],["V20","V19"],["V19","V14"],["V14","V15"],["V15","V9"],
+  ["V24","V25"],["V23","V22"],["V20","V21"],["V14","V16"],["V15","V17"],["V9","V10"],
+  ["V25","V33"],["V33","V32"],["V32","V22"],["V22","V21"],["V21","V18"],["V18","V16"],
+  ["V16","V17"],["V17","V10"],["V25","V26"],["V26","V27"],["V27","V28"],["V27","V3"],
+  ["V3","V38"],["V38","V40"],["V40","V43"],["V26","V34"],["V33","V36"],["V22","V43"],
+  ["V38","V39"],["V33","V34"],["V34","V3"],["V34","V35"],["V35","V36"],["V32","V54"],
+  ["V54","V36"],["V36","V40"],["V40","V42"],["V43","V42"],["V39","V42"],["V18","V45"],
+  ["V45","V46"],["V46","V47"],["V45","V53"],["V28","V39"],["V42","V47"],["V47","V48"],
+  ["V48","V51"],["V17","V53"],["V53","V11"],["V11","V12"],["V12","V51"],["V10","V11"],
+  ["V13","V12"],["V13","V48"],["V46","V13"]
+];
+
+const COL = { ucs: "#9333ea", greedy: "#ea580c", astar: "#2563eb" };
+const NAMES = { ucs: "UCS", greedy: "Greedy", astar: "A*" };
+
+/* ================= GRAPH SETUP ================= */
+class Vertex {
+  constructor(value, X, Y) {
+    this.value = value;
+    this.X = X;
+    this.Y = Y;
+    this.neighbors = [];
+  }
+}
+
+const vertices = {};
+for (const [n, [x, y]] of Object.entries(positions)) vertices[n] = new Vertex(n, x, y);
+for (const [a, b] of edges) {
+  vertices[a].neighbors.push(vertices[b]);
+  vertices[b].neighbors.push(vertices[a]);
+}
+
+const dist = (a, b) => Math.hypot(a.X - b.X, a.Y - b.Y);
+
+/* ================= ALGORITHMS ================= */
+function search(algo, start, goal) {
+  if (!start || !goal) return { steps: [], path: [], cost: 0, explored: 0 };
+  
+  function getPriority(g, node) {
+    if (algo === "ucs") return g;
+    if (algo === "greedy") return dist(node, goal);
+    return g + dist(node, goal);
+  }
+
+  const frontier = [{ f: getPriority(0, start), name: start.value }];
+  const g = { [start.value]: 0 };
+  const cameFrom = { [start.value]: null };
+  const closed = new Set();
+  const steps = [];
+
+  while (frontier.length > 0) {
+    frontier.sort((a, b) => a.f - b.f);
+    const { name } = frontier.shift();
+    
+    if (closed.has(name)) continue;
+    closed.add(name);
+    
+    const cur = vertices[name];
+    steps.push({ node: name, from: cameFrom[name] });
+    if (cur === goal) break;
+
+    for (let i = 0; i < cur.neighbors.length; i++) {
+      const nb = cur.neighbors[i];
+      if (closed.has(nb.value)) continue;
+
+      const newG = g[name] + dist(cur, nb);
+
+      if (algo === "greedy") {
+        if (!(nb.value in cameFrom)) {
+          cameFrom[nb.value] = name;
+          g[nb.value] = newG;
+          frontier.push({ f: getPriority(newG, nb), name: nb.value });
+        }
+      } else if (!(nb.value in g) || newG < g[nb.value]) {
+        g[nb.value] = newG;
+        cameFrom[nb.value] = name;
+        frontier.push({ f: getPriority(newG, nb), name: nb.value });
+      }
+    }
+  }
+
+  const path = [];
+  if (goal.value in cameFrom) {
+    let current = goal.value;
+    while (current !== null) {
+      path.push(current);
+      current = cameFrom[current];
+    }
+  }
+  path.reverse();
+
+  let cost = 0;
+  for (let i = 1; i < path.length; i++) {
+    cost += dist(vertices[path[i - 1]], vertices[path[i]]);
+  }
+
+  return { steps: steps, path: path, cost: cost, explored: steps.length };
+}
+
+/* ================= CANVAS SETUP ================= */
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+
+const img = new Image();
+const imgPeople1 = new Image();
+const imgPeople2 = new Image();
+
+let imgOK = false, sx = 1, sy = 1;
+
+img.onload = function() { imgOK = true; setupCanvas(); draw(); };
+img.onerror = function() { setupCanvas(); draw(); };
+img.src = "map.jpg";
+
+imgPeople1.onload = draw;
+imgPeople2.onload = draw;
+imgPeople1.src = "people1.png";
+imgPeople2.src = "people2.png";
+
+function setupCanvas() {
+  canvas.width = imgOK ? img.naturalWidth : 1440;
+  canvas.height = imgOK ? img.naturalHeight : 680;
+  sx = canvas.width / 720;
+  sy = canvas.height / 340;
+}
+
+const px = v => v.X * sx;
+const py = v => v.Y * sy;
+
+/* ================= STATE ================= */
+const S = {
+  algo: "astar", start: null, goal: null, visited: new Set(),
+  visitEdges: [], current: null, path: [], extraPaths: [],
+  walkerPos: null, timer: null, running: false
+};
+
+function resetRun() {
+  if (typeof S.timer === "number") clearTimeout(S.timer);
+  else cancelAnimationFrame(S.timer);
+  S.running = false;
+  S.visited = new Set();
+  S.visitEdges = [];
+  S.current = null;
+  S.path = [];
+  S.extraPaths = [];
+  S.walkerPos = null;
+}
+
+function setStatus(text) {
+  document.getElementById("status").textContent = text;
+}
+
+function addResultRow(algo, res) {
+  const table = document.getElementById("results");
+  const oldRow = table.querySelector(`[data-a="${algo}"]`);
+  if (oldRow) oldRow.remove();
+
+  const tr = document.createElement("tr");
+  tr.dataset.a = algo;
+
+  const costText = res.path.length ? res.cost.toFixed(1) : "–";
+  tr.innerHTML = `<td><i class="dot" style="background:${COL[algo]}"></i>${NAMES[algo]}</td>
+                  <td>${res.explored}</td>
+                  <td>${costText}</td>`;
+
+  table.appendChild(tr);
+}
+
+/* ================= DRAWING ================= */
+function drawLine(a, b) {
+  ctx.beginPath();
+  ctx.moveTo(px(a), py(a));
+  ctx.lineTo(px(b), py(b));
+  ctx.stroke();
+}
+
+function drawPath(names, color, w) {
+  if (names.length < 2) return;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = w;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+
+  for (let i = 0; i < names.length; i++) {
+    const v = vertices[names[i]];
+    if (v) {
+      if (i === 0) ctx.moveTo(px(v), py(v));
+      else ctx.lineTo(px(v), py(v));
+    }
+  }
+  ctx.stroke();
+}
+
+function drawCharacters(r) {
+  const size = 40 * r;
+
+  if (S.goal && imgPeople2.complete && imgPeople2.naturalWidth) {
+    ctx.drawImage(imgPeople2, px(S.goal) - size / 2, py(S.goal) - size, size, size);
+  }
+
+  const walker = S.walkerPos || S.start;
+  if (walker && imgPeople1.complete && imgPeople1.naturalWidth) {
+    ctx.drawImage(imgPeople1, px(walker) - size / 2, py(walker) - size, size, size);
+  }
+}
+
+function draw() {
+  const r = canvas.width / 720;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (imgOK) ctx.drawImage(img, 0, 0);
+  else { ctx.fillStyle = "#e5e7eb"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+
+  // Base edges
+  ctx.strokeStyle = "rgba(90,90,90,.55)";
+  ctx.lineWidth = 2 * r;
+  for (let i = 0; i < edges.length; i++) {
+    drawLine(vertices[edges[i][0]], vertices[edges[i][1]]);
+  }
+
+  // Explored edges (Yellow)
+  ctx.strokeStyle = "#f59e0b";
+  ctx.lineWidth = 4 * r;
+  for (let i = 0; i < S.visitEdges.length; i++) {
+    drawLine(vertices[S.visitEdges[i][0]], vertices[S.visitEdges[i][1]]);
+  }
+
+  // Comparison extra paths & main path
+  for (let i = 0; i < S.extraPaths.length; i++) {
+    drawPath(S.extraPaths[i].path, S.extraPaths[i].color, 7 * r);
+  }
+  drawPath(S.path, "#2563eb", 8 * r);
+
+  // Nodes
+  for (const v of Object.values(vertices)) {
+    let color = "#1f2937", rad = 5 * r;
+    if (S.visited.has(v.value)) color = "#f59e0b";
+    if (v === S.current) { color = "#ef4444"; rad = 7 * r; }
+    if (v === S.start)   { color = "#16a34a"; rad = 9 * r; }
+    if (v === S.goal)    { color = "#dc2626"; rad = 9 * r; }
+
+    ctx.beginPath();
+    ctx.arc(px(v), py(v), rad, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.lineWidth = 2 * r;
+    ctx.strokeStyle = "#fff";
+    ctx.stroke();
+
+    // Node labels
+    ctx.font = `${9 * r}px system-ui, sans-serif`;
+    ctx.textAlign = "center";
+    const w = ctx.measureText(v.value).width;
+    ctx.fillStyle = "rgba(255,255,255,.85)";
+    ctx.fillRect(px(v) - w / 2 - 2 * r, py(v) + rad + 1 * r, w + 4 * r, 11 * r);
+    ctx.fillStyle = "#111";
+    ctx.fillText(v.value, px(v), py(v) + rad + 9.5 * r);
+  }
+
+  drawCharacters(r);
+}
+
+/* ================= INTERACTION ================= */
+function getNearestNode(x, y) {
+  let best = null, minD = Infinity;
+  for (const [a, b] of edges) {
+    const A = vertices[a], B = vertices[b];
+    const ax = px(A), ay = py(A), dx = px(B) - ax, dy = py(B) - ay;
+    let t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)));
+    const d = Math.hypot(x - (ax + t * dx), y - (ay + t * dy));
+    if (d < minD) { minD = d; best = { a, b, t, d }; }
+  }
+  return (best && best.d <= 28 * canvas.width / 720) ? vertices[best.t < 0.5 ? best.a : best.b] : null;
+}
+
+canvas.addEventListener("click", function(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * canvas.width / rect.width;
+  const y = (e.clientY - rect.top) * canvas.height / rect.height;
+  const node = getNearestNode(x, y);
+
+  if (!node) return;
+
+  if (!S.start || (S.start && S.goal)) {
+    resetRun();
+    S.start = node;
+    S.goal = null;
+    setStatus(`Start = ${node.value}. Now tap a goal place.`);
+  } else if (node !== S.start) {
+    resetRun();
+    S.goal = node;
+    setStatus(`Goal = ${node.value}. Click Run selected or Compare all 3.`);
+  }
+  draw();
+});
+
+document.querySelectorAll("#algoBtns button").forEach(function(btn) {
+  btn.addEventListener("click", function() {
+    document.querySelectorAll("#algoBtns button").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    S.algo = btn.dataset.algo;
+  });
+});
+
+document.getElementById("runBtn").onclick = function() {
+  if (!S.start || !S.goal) return;
+  resetRun();
+  
+  const res = search(S.algo, S.start, S.goal);
+  S.running = true;
+  let i = 0;
+
+  function step() {
+    if (!S.running) return;
+    if (i < res.steps.length) {
+      const st = res.steps[i++];
+      S.visited.add(st.node);
+      S.current = vertices[st.node];
+      if (st.from) S.visitEdges.push([st.from, st.node]);
+      setStatus(`Exploring ${st.node} (${i}/${res.steps.length})`);
+      draw();
+      S.timer = setTimeout(step, 200);
+    } else {
+      S.current = null;
+      addResultRow(S.algo, res);
+      animateWalker(res.path);
+    }
+  }
+
+  step();
+};
+
+document.getElementById("compareBtn").onclick = function() {
+  if (!S.start || !S.goal) return;
+  resetRun();
+
+  const algos = ["ucs", "greedy", "astar"];
+  for (let i = 0; i < algos.length; i++) {
+    const a = algos[i];
+    const res = search(a, S.start, S.goal);
+    addResultRow(a, res);
+    S.extraPaths.push({ path: res.path, color: COL[a] });
+  }
+
+  const astarRes = search("astar", S.start, S.goal);
+  if (astarRes.path.length) {
+    S.walkerPos = vertices[astarRes.path[astarRes.path.length - 1]];
+  }
+
+  setStatus("Comparison done! Purple = UCS, Orange = Greedy, Blue = A*");
+  draw();
+};
+
+document.getElementById("resetBtn").onclick = function() {
+  resetRun();
+  S.start = null;
+  S.goal = null;
+  document.getElementById("results").innerHTML = "";
+  setStatus("Tap a start place on the map.");
+  draw();
+};
+
+/* ================= WALKER ANIMATION ================= */
+function animateWalker(path) {
+  if (!path.length) {
+    setStatus("No path found.");
+    S.running = false;
+    draw();
+    return;
+  }
+
+  S.path = path;
+  let idx = 0, progress = 0;
+
+  function frame() {
+    if (!S.running) return;
+
+    if (idx < path.length - 1) {
+      const start = vertices[path[idx]];
+      const end = vertices[path[idx + 1]];
+
+      S.walkerPos = {
+        X: start.X + (end.X - start.X) * progress,
+        Y: start.Y + (end.Y - start.Y) * progress
+      };
+
+      progress += 0.05;
+      if (progress >= 1.0) { progress = 0; idx++; }
+
+      draw();
+      S.timer = requestAnimationFrame(frame);
+    } else {
+      S.walkerPos = vertices[path[path.length - 1]];
+      S.running = false;
+      setStatus("Done!");
+      draw();
+    }
+  }
+
+  S.running = true;
+  frame();
+}
+
+setupCanvas();
+draw();
+</script>
+</body>
+</html>
